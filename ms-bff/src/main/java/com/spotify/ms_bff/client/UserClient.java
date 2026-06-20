@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "ms-users", url = "http://localhost:8084")
+@FeignClient(name = "ms-users")
 public interface UserClient {
     @GetMapping("/users")
     List<Object> getUsers();

@@ -3,15 +3,15 @@ server:
 
 spring:
   application:
-    name: ms-playlists # <--- CAMBIADO AQUÍ (Debe ser idéntico al name de tu @FeignClient)
+    name: ms-streaming
   datasource:
-    url: jdbc:h2:mem:playlistsdb # Cambiado también para que tenga su propia base de datos limpia
+    url: jdbc:h2:mem:streamingdb 
     username: sa
     password:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true # Añadido para que puedas auditar las consultas en consola
+    show-sql: true
 
 eureka:
   client:
