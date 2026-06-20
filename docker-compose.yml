@@ -1,4 +1,5 @@
 services:
+  # 1. Base de Datos
   mysql-db:
     image: mysql:8.0
     container_name: spotify-mysql
@@ -8,6 +9,104 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Servidor de Descubrimiento (Debe iniciar primero)
+  eureka-server:
+    build:
+      context: ./eureka-server
+    container_name: spotify-eureka
+    ports:
+      - "8761:8761"
+
+  # 3. Microservicios (Conectados a Eureka y MySQL)
+  ms-catalog:
+    build:
+      context: ./ms-catalog
+    container_name: spotify-catalog
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/catalog_db?createDatabaseIfNotExist=true
+    depends_on:
+      eureka-server:
+        condition: service_started
+      mysql-db:
+        condition: service_healthy
+  ms-playlists:
+    build:
+      context: ./ms-playlists
+    container_name: spotify-playlists
+    ports:
+      - "8082:8082"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+
+  ms-streaming:
+    build:
+      context: ./ms-streaming
+    container_name: spotify-streaming
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+
+  ms-users:
+    build:
+      context: ./ms-users
+    container_name: spotify-users
+    ports:
+      - "8084:8084"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/users_db?createDatabaseIfNotExist=true
+    depends_on:
+      - eureka-server
+      - mysql-db
+
+  # 4. API Gateway y BFF
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: spotify-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+      - ms-catalog
+      - ms-playlists
+
+  ms-bff:
+    build:
+      context: ./ms-bff
+    container_name: spotify-bff
+    ports:
+      - "8085:8085"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+
+  # 5. Frontend (React + Vite -> Nginx)
+  frontend:
+    build:
+      context: ../../frontend-devops
+    container_name: spotify-frontend
+    ports:
+      - "3000:80" # Mapeamos el puerto 80 del Nginx al 3000
+    depends_on:
+      - ms-bff
 
 volumes:
   mysql_data:
