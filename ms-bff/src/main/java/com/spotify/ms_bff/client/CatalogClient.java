@@ -4,7 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-@FeignClient(name = "ms-catalog", url = "http://localhost:8081")
+@FeignClient(name = "ms-catalog")
 public interface CatalogClient {
     @GetMapping("/catalog")
     List<Object> getCatalog();
